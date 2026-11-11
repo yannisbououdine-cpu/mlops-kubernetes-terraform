@@ -7,7 +7,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /build
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# pip ne sert qu'à l'installation : il est retiré du venv copié dans l'image finale.
+RUN pip install --no-cache-dir -r requirements.txt \
+ && pip uninstall --yes pip
 
 COPY train.py .
 ARG MODEL_VERSION
@@ -20,6 +22,14 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MODEL_DIR=/app/model
+
+# Applique les correctifs de sécurité Debian publiés depuis la construction de l'image de base,
+# et retire le pip de l'image de base : il embarque ses propres copies de bibliothèques
+# (urllib3, msgpack, setuptools) dont l'API n'a pas besoin.
+RUN apt-get update \
+ && apt-get upgrade --yes \
+ && rm -rf /var/lib/apt/lists/* \
+ && python -m pip uninstall --yes pip
 
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv

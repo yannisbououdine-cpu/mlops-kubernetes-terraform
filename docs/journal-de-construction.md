@@ -384,3 +384,33 @@ Les résultats de chaque exécution, y compris les échecs et leur correction, s
 **Leçon** : dans un chart Helm, les commentaires YAML ne protègent rien. Pour commenter une syntaxe de gabarit, utiliser un commentaire Helm `{{/* ... */}}`, ou ne pas écrire les accolades. C'est exactement le piège que le fichier `alerts/rules.yaml` contourne pour les vraies règles d'alerte (étape 7) : le commentaire qui l'expliquait est tombé dedans.
 
 **Pourquoi la CI ne démarrait pas au début** : les deux premières exécutions, déclenchées par les `git push`, sont restées en file d'attente sans aucun job, et les mises à jour Dependabot ont échoué au démarrage. L'exécution lancée à la main avec *Run workflow* (déclencheur `workflow_dispatch`) a démarré normalement. La cause côté GitHub n'est pas établie ; l'hypothèse la plus probable est une restriction temporaire sur un compte récent.
+
+### Exécution 2 : le scan Trivy bloque l'image
+
+**Ce qui passe désormais** : lint, tests, validation de l'infrastructure, et la construction de l'image. Le modèle s'entraîne dans Docker et franchit le seuil (`"accuracy": 0.9722` dans les logs).
+
+**Symptôme** : l'étape *Scanner les vulnérabilités de l'image* échoue avec 7 vulnérabilités HIGH, toutes corrigées en amont :
+
+| Paquet | Version installée | Corrigée en | Origine |
+|---|---|---|---|
+| zlib1g (Debian) | 1:1.3.dfsg+really1.3.1-1+b1 | 1:1.3.dfsg+really1.3.1-1+deb13u1 | Image de base `python:3.13-slim` |
+| msgpack | 1.1.2 | 1.2.3 | ? |
+| setuptools | 70.3.0 | 78.1.1 | ? |
+| urllib3 | 2.7.0 | 2.8.0 | ? |
+
+**Enquête** : aucun de ces trois paquets Python n'est une dépendance de l'API. J'ai calculé l'arbre complet des dépendances de `requirements.txt` : 23 paquets, dont aucun n'est msgpack, setuptools ou urllib3. En revanche, le fichier `pip/_vendor/vendor.txt`, qui liste les bibliothèques que **pip embarque dans son propre code**, contient exactement :
+
+```
+msgpack==1.1.2
+    urllib3==2.7.0
+setuptools==70.3.0
+```
+
+Les trois versions correspondent à l'identique. pip est présent deux fois dans l'image (dans l'image de base et dans l'environnement virtuel), alors que l'API n'en a aucun besoin une fois les dépendances installées.
+
+**Corrections**
+
+1. Désinstaller pip de l'environnement virtuel juste après l'installation des dépendances, et de l'image de base dans l'étape finale. C'est la correction de la cause : la mise à jour de pip aurait seulement repoussé le problème à sa prochaine vulnérabilité.
+2. Lancer `apt-get upgrade` dans l'étape finale : Debian a publié le correctif de zlib, mais l'image officielle `python:3.13-slim` n'a pas encore été reconstruite. J'ai vérifié dans le code de hadolint 2.15.1 que la règle qui interdisait autrefois `apt-get upgrade` (DL3005) n'existe plus.
+
+**Leçon** : une image contient bien plus que ses dépendances déclarées. Un outil d'installation laissé dans l'image de production élargit la surface d'attaque sans rien apporter au service.
