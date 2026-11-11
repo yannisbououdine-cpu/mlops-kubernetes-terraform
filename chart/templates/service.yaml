@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    {{- include "digit-classifier.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  selector:
+    {{- include "digit-classifier.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: {{ .Values.service.nodePort }}

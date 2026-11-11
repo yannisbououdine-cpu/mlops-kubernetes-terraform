@@ -1,0 +1,25 @@
+# Valeurs du chart kube-prometheus-stack.
+
+prometheus:
+  service:
+    type: NodePort
+  prometheusSpec:
+    # Par défaut Prometheus ne retient que les objets portant le label de sa propre release Helm.
+    # Ici il prend tous les ServiceMonitor et PrometheusRule du cluster, dont ceux de l'API.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+grafana:
+  service:
+    type: NodePort
+
+# Dans kind ces composants du plan de contrôle n'écoutent que sur 127.0.0.1 :
+# Prometheus ne peut pas les joindre et leurs alertes par défaut se déclencheraient à tort.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false

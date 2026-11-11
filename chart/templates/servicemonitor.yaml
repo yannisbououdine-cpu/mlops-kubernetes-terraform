@@ -1,0 +1,15 @@
+# Indique à Prometheus de collecter /metrics sur chaque pod du service.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    {{- include "digit-classifier.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "digit-classifier.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

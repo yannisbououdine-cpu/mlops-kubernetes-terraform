@@ -1,0 +1,6 @@
+# Configuration de Trivy pour le scan de l'IaC (job infra de la CI).
+misconfiguration:
+  helm:
+    # Valeur obligatoire du chart : sans elle Trivy ne peut pas rendre les manifests.
+    set:
+      - image=digit-classifier:ci

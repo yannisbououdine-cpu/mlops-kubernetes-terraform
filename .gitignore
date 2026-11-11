@@ -1,0 +1,11 @@
+# Terraform : état local, cache des providers et kubeconfig du cluster kind
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/kubeconfig
+
+# Python
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/

@@ -1,0 +1,11 @@
+# Le sidecar de Grafana charge toute ConfigMap portant le label grafana_dashboard.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-dashboard
+  labels:
+    {{- include "digit-classifier.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  digit-classifier.json: |-
+    {{- .Files.Get "dashboards/digit-classifier.json" | nindent 4 }}

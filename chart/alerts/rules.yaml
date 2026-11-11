@@ -1,0 +1,55 @@
+groups:
+  - name: digit-classifier
+    rules:
+      - alert: DigitClassifierDown
+        expr: absent(up{job="digit-classifier"} == 1)
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Aucun pod digit-classifier ne répond à Prometheus.
+          runbook: docs/runbook.md#digitclassifierdown
+
+      - alert: DigitClassifierHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="digit-classifier", status=~"5.."}[5m]))
+            /
+          sum(rate(http_requests_total{job="digit-classifier"}[5m]))
+            > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $value | humanizePercentage }} des requêtes échouent en erreur 5xx.'
+          runbook: docs/runbook.md#digitclassifierhigherrorrate
+
+      - alert: DigitClassifierHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{job="digit-classifier", path="/predict"}[5m]))
+          ) > 0.25
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Le 95e centile de latence de /predict atteint {{ $value | humanizeDuration }}.'
+          runbook: docs/runbook.md#digitclassifierhighlatency
+
+      # Signal de dérive sans étiquettes : sur un trafic équilibré chaque chiffre pèse environ 10 %.
+      # Quand les entrées se dégradent, le modèle se replie sur une classe (voir docs/decisions.md).
+      - alert: DigitClassifierPredictionSkew
+        expr: |
+          (
+            max(sum by (digit) (rate(model_predictions_total{job="digit-classifier"}[15m])))
+              /
+            sum(rate(model_predictions_total{job="digit-classifier"}[15m]))
+              > 0.25
+          )
+          and
+          sum(rate(model_predictions_total{job="digit-classifier"}[15m])) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Un seul chiffre représente {{ $value | humanizePercentage }} des prédictions.'
+          runbook: docs/runbook.md#digitclassifierpredictionskew

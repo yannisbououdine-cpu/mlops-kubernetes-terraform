@@ -1,0 +1,10 @@
+# Les règles vivent dans alerts/rules.yaml, hors du moteur de gabarits de Helm :
+# leurs annotations utilisent la syntaxe {{ ... }} de Prometheus.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    {{- include "digit-classifier.labels" . | nindent 4 }}
+spec:
+  {{- .Files.Get "alerts/rules.yaml" | nindent 2 }}

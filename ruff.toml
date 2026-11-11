@@ -1,0 +1,10 @@
+line-length = 100
+target-version = "py313"
+src = ["app"] # main et train sont des modules du projet, pas des dépendances
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[lint.per-file-ignores]
+"app/tests/*" = ["S101"] # assert est l'outil normal de pytest
+"scripts/*" = ["S310"]   # outil local : l'URL de l'API est fournie par la personne qui le lance

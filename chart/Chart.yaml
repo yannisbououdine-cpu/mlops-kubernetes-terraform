@@ -1,0 +1,6 @@
+apiVersion: v2
+name: digit-classifier
+description: API d'inférence de reconnaissance de chiffres manuscrits, avec sa supervision Prometheus et Grafana.
+type: application
+# À incrémenter à chaque modification du chart : c'est ce qui déclenche sa mise à jour par Terraform.
+version: 0.1.0
