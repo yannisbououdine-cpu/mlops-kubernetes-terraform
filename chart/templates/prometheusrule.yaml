@@ -1,5 +1,5 @@
 # Les règles vivent dans alerts/rules.yaml, hors du moteur de gabarits de Helm :
-# leurs annotations utilisent la syntaxe {{ ... }} de Prometheus.
+# leurs annotations utilisent les doubles accolades de Prometheus, que Helm interpréterait.
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:

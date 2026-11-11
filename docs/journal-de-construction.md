@@ -368,3 +368,19 @@ Ce qui pouvait être vérifié avant d'envoyer le code l'a été : les 14 tests,
 Les résultats de chaque exécution, y compris les échecs et leur correction, sont consignés ci-dessous avec leur preuve.
 
 <!-- journal-ci -->
+
+### Exécution 1 : le job Infrastructure échoue sur `helm lint`
+
+**Symptôme** : le job `API` passe (lint et 14 tests). Le job `Infrastructure` s'arrête à l'étape *Lint du chart Helm* :
+
+```
+[ERROR] templates/: parse error at (digit-classifier/templates/prometheusrule.yaml:2): unexpected <.> in operand
+```
+
+**Cause prouvée** : la ligne 2 de `prometheusrule.yaml` est un **commentaire** YAML qui contenait le texte `{{ ... }}`. Helm traite le fichier comme un gabarit Go *avant* de le lire comme du YAML : pour lui, un `#` n'a aucune signification, et `{{ ... }}` est une instruction à exécuter. Une recherche (`grep -n "#.*{{" chart/templates/*`) confirme que c'est la seule occurrence.
+
+**Correction** : reformuler le commentaire sans accolades.
+
+**Leçon** : dans un chart Helm, les commentaires YAML ne protègent rien. Pour commenter une syntaxe de gabarit, utiliser un commentaire Helm `{{/* ... */}}`, ou ne pas écrire les accolades. C'est exactement le piège que le fichier `alerts/rules.yaml` contourne pour les vraies règles d'alerte (étape 7) : le commentaire qui l'expliquait est tombé dedans.
+
+**Pourquoi la CI ne démarrait pas au début** : les deux premières exécutions, déclenchées par les `git push`, sont restées en file d'attente sans aucun job, et les mises à jour Dependabot ont échoué au démarrage. L'exécution lancée à la main avec *Run workflow* (déclencheur `workflow_dispatch`) a démarré normalement. La cause côté GitHub n'est pas établie ; l'hypothèse la plus probable est une restriction temporaire sur un compte récent.
