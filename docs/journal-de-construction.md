@@ -414,3 +414,30 @@ Les trois versions correspondent à l'identique. pip est présent deux fois dans
 2. Lancer `apt-get upgrade` dans l'étape finale : Debian a publié le correctif de zlib, mais l'image officielle `python:3.13-slim` n'a pas encore été reconstruite. J'ai vérifié dans le code de hadolint 2.15.1 que la règle qui interdisait autrefois `apt-get upgrade` (DL3005) n'existe plus.
 
 **Leçon** : une image contient bien plus que ses dépendances déclarées. Un outil d'installation laissé dans l'image de production élargit la surface d'attaque sans rien apporter au service.
+
+### Exécution 3 : tout passe
+
+Les trois jobs réussissent. Extraits des logs du job de bout en bout (durée totale : 4 min 20 s) :
+
+```
+Trivy                 0 vulnérabilité HIGH ou CRITICAL
+terraform plan        Plan: 5 to add, 0 to change, 0 to destroy.
+kind_cluster.this     Creation complete after 39s
+kind_load.app         Creation complete after 14s
+helm_release.monitoring  Creation complete after 1m0s
+helm_release.app      Creation complete after 6s
+
+OK   l'API reconnaît le chiffre 5 de examples/digit-5.json
+OK   l'API rejette une image invalide (422)
+OK   Prometheus collecte les 2 pods de l'API
+OK   Prometheus a enregistré les prédictions
+OK   les 4 règles d'alerte sont chargées
+OK   Grafana a chargé le tableau de bord
+
+GHCR                  3b84323: digest: sha256:03295fde…
+terraform destroy     Destroy complete! Resources: 5 destroyed.
+```
+
+**Bilan des corrections** : deux échecs, deux causes prouvées par les logs avant toute modification, deux corrections ciblées. Aucune ne contourne le contrôle qui a échoué : le lint Helm et le scan Trivy restent bloquants.
+
+**En entretien** : ces deux échecs sont de bonnes histoires à raconter. Le premier montre qu'on comprend l'ordre de traitement de Helm (gabarit puis YAML). Le second montre une démarche d'enquête : plutôt que d'ignorer les vulnérabilités ou de monter des versions au hasard, remonter à leur origine réelle (les copies embarquées par pip) et supprimer la cause.
