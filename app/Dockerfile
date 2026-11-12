@@ -1,6 +1,6 @@
 # Étape 1 : installe les dépendances et entraîne le modèle.
 # Si l'exactitude passe sous le seuil de train.py, la construction de l'image échoue.
-FROM python:3.13-slim AS builder
+FROM python:3.15-slim AS builder
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -16,7 +16,7 @@ ARG MODEL_VERSION
 RUN python train.py --output-dir /build/model --model-version "${MODEL_VERSION:?MODEL_VERSION est obligatoire}"
 
 # Étape 2 : image d'exécution, sans le code d'entraînement et sans droits root.
-FROM python:3.13-slim
+FROM python:3.15-slim
 
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
